@@ -180,10 +180,9 @@ static void test_queue_peek() {
 }
 
 int main(void) {
-    CU_ErrorCode error_code;
     CU_pSuite suite_qc_queue_char;
 
-    error_code = CU_initialize_registry();
+    CU_initialize_registry();
 
     suite_qc_queue_char = CU_add_suite("qc_queue_char",
             &initialize, &cleanup);
