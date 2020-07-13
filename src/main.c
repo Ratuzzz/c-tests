@@ -4,7 +4,9 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "qc_queue_char.h"
+#include "tc_tetris_common.h"
 
 #define STDIN_FILENO 0
 
@@ -12,38 +14,34 @@ pthread_t listening_thread_handle;
 qc_queue_t *p_input_queue         = NULL;
 uint8_t u8_initialized            = 0;
 
-
-
-void set_canonical_mode(int on) {
+/******************************************************
+ *                      CLI IHM
+ ******************************************************/
+void set_canonical_mode(bool b_on) {
     struct termios ttystate;
 
     /* get the terminal state */
     tcgetattr(STDIN_FILENO, &ttystate);
     
-    if (!on) {
-        /* turn off canonical mod */
+    if (!b_on) {
         ttystate.c_lflag &= ~ICANON;
-        /* minimum of number input read */
-        ttystate.c_cc[VMIN] = 1;
+        ttystate.c_cc[VMIN] = 1; /* minimum of number input read */
     } else {
-        /* turn on canonical mode */
         ttystate.c_lflag |= ICANON;
     }
     /* set the terminal attributes */
     tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
 
-void set_echo_mode(int on) {
+void set_echo_mode(bool b_on) {
     struct termios ttystate;
 
     /* get the terminal state  */
     tcgetattr(STDIN_FILENO, &ttystate);
 
-    if (!on) {
-        /* turn off echo mod */
+    if (!b_on) {
         ttystate.c_lflag &= ~ECHO;
     } else {
-        /* turn on echo mod */
         ttystate.c_lflag |= ECHO;
     }
 
@@ -51,6 +49,9 @@ void set_echo_mode(int on) {
     tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
 
+/******************************************************
+ *                   Game Loop
+ ******************************************************/
 void* listening_loop(void *arg) {
     int32_t i32_return_code;
     int32_t i32_input;
@@ -76,10 +77,6 @@ void* listening_loop(void *arg) {
     p_input_queue = NULL;
 }
 
-int start_listening_thread() {
-    return pthread_create(&listening_thread_handle, NULL, &listening_loop, NULL);
-}
-
 int process_input(uint8_t u8_input) {
     printf("Processing input '%c'\n", u8_input);
     return 0;
@@ -94,12 +91,17 @@ int main() {
     set_echo_mode(0);
 
     /* Init listening thread */
-    start_listening_thread();
+    i32_return_code = pthread_create(&listening_thread_handle, NULL, &listening_loop, NULL);
+    if (i32_return_code != 0) {
+        fprintf(stderr, "Err : phtread_create returned %d\n", i32_return_code);
+    }
 
+    tc_init();
     while(u8_initialized == 0) { }
     while(1) {
         sleep(1);
         if (qc_queue_get_size(p_input_queue) > 0) {
+
             i32_return_code = qc_queue_dequeue(p_input_queue, (char*)&u8_input);
             if (i32_return_code != 0) {
                 fprintf(stderr, "Err : qc_queue_dequeue returned %d\n", i32_return_code);

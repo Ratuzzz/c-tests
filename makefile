@@ -13,6 +13,7 @@ tetris:
 	$(CC) $(CFLAGS) -o$(BINDIR)/tetris \
 		$(SRCDIR)/main.c \
 		$(SRCDIR)/qc_queue_char.c \
+		$(SRCDIR)/tc_tetris_common.c \
 		-lpthread \
 		-I$(INCLUDEDIR) 
 
